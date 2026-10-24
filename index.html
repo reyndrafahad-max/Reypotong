@@ -1,0 +1,1240 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reypotong</title>
+<meta name="description" content="Reypotong: penghapus latar gambar jadi PNG transparan, otomatis dan manual dengan pin sudut.">
+<meta name="theme-color" content="#0A8F8C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reypotong">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{color-scheme:light}
+/* Layout: kepala bergaris gunting, tab pil, kartu pratinjau besar + kartu opsi berwarna, dok tombol di bawah. */
+:root{
+  --bg:#F1F9F6; --panel:#FFFFFF; --ink:#0F2E36; --muted:#56767C; --line:#D3E8E2; --soft:#E5F4EF;
+  --accent:#0A7F8A; --coral:#F0624E; --onacc:#FFFFFF; --danger:#D93A40;
+  --grad:linear-gradient(135deg,#0A8F8C 0%,#1A74C4 100%);
+  --gsh:rgba(14,120,150,.34); --shadow:0 8px 26px rgba(20,110,120,.12);
+  --blob1:#D3F1E8; --blob2:#FFE1D9; --stage:#E0EDE9; --ck1:#FFFFFF; --ck2:#CBDCD7;
+  --f-ui:"Nunito","Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1517; --panel:#12222A; --ink:#E3F4F1; --muted:#8FB1B1; --line:#23393F; --soft:#1A3037;
+    --accent:#4FD2C6; --coral:#FF8A76; --shadow:0 8px 26px rgba(0,0,0,.42);
+    --blob1:#12333A; --blob2:#3A2224; --stage:#0A1214; --ck1:#3A4A4D; --ck2:#273538; --gsh:rgba(20,130,170,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1517; --panel:#12222A; --ink:#E3F4F1; --muted:#8FB1B1; --line:#23393F; --soft:#1A3037;
+  --accent:#4FD2C6; --coral:#FF8A76; --shadow:0 8px 26px rgba(0,0,0,.42);
+  --blob1:#12333A; --blob2:#3A2224; --stage:#0A1214; --ck1:#3A4A4D; --ck2:#273538; --gsh:rgba(20,130,170,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; color:var(--ink); font:500 15px/1.45 var(--f-ui);
+  background-color:var(--bg);
+  background-image:radial-gradient(120% 46% at 108% -6%, var(--blob2) 0, transparent 62%), radial-gradient(80% 36% at -12% 0, var(--blob1) 0, transparent 60%);
+  background-repeat:no-repeat;
+  padding-block:6px 118px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 65%,transparent);outline-offset:2px}
+.shell{width:min(100%,1180px);margin:0 auto;min-width:0}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* header */
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px 4px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:58px;height:58px;flex:none;filter:drop-shadow(0 8px 12px var(--gsh))}
+.brand h1{margin:0;font-size:clamp(26px,6.4vw,34px);line-height:1;font-weight:900;letter-spacing:-.8px;display:flex;align-items:flex-start;gap:5px}
+.brand h1 .cut{width:20px;height:20px;color:var(--coral);margin-top:-4px;transform:rotate(-12deg)}
+.brand p{margin:5px 0 0;font-size:15px;color:var(--muted);font-weight:700}
+.hact{display:flex;gap:8px;align-items:center}
+.round{
+  height:48px;border-radius:24px;border:0;background:var(--panel);box-shadow:var(--shadow);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;cursor:pointer;
+  font-weight:800;font-size:14.5px;color:var(--ink);white-space:nowrap;
+}
+.round:hover{box-shadow:var(--shadow),0 0 0 2px var(--line)}
+.round .ic{width:20px;height:20px;color:var(--accent)}
+.cutline{display:flex;align-items:center;gap:10px;margin:2px 2px 12px;color:var(--coral)}
+.cutline::before,.cutline::after{content:"";flex:1;border-top:2.5px dashed color-mix(in srgb,var(--coral) 55%,transparent)}
+.cutline::before{flex:0 0 22px}
+.cutline svg{width:26px;height:26px;flex:none}
+
+/* tabs */
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:30px;padding:5px;box-shadow:var(--shadow);margin-bottom:14px;gap:2px}
+.tool{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 6px;border-radius:25px;
+  font-size:15.5px;font-weight:800;color:var(--muted);background:transparent;border:0;cursor:pointer;white-space:nowrap;min-width:0;
+}
+.tool .ic{width:21px;height:21px}
+.tool:hover{color:var(--ink)}
+.tool[aria-selected="true"]{background:var(--grad);color:var(--onacc);box-shadow:0 8px 18px var(--gsh)}
+
+/* layout */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:16px;align-items:start}
+.pv{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:30px;padding:14px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.pv::before,.pv::after{content:"";position:absolute;pointer-events:none}
+.pv::before{left:-34px;top:56px;width:96px;height:160px;border-radius:60% 40% 55% 45%;background:var(--blob1);transform:rotate(-18deg)}
+.pv::after{right:-36px;bottom:70px;width:104px;height:170px;border-radius:45% 55% 40% 60%;background:var(--blob2);transform:rotate(20deg)}
+.pv>*{position:relative;z-index:1}
+.stagewrap{position:relative;height:clamp(320px,64vh,680px);border-radius:22px;overflow:hidden;background:var(--stage);box-shadow:0 12px 30px rgba(10,60,70,.2)}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.busy{position:absolute;right:12px;top:12px;background:var(--grad);color:var(--onacc);padding:5px 12px;border-radius:14px;font-size:12.5px;font-weight:800;pointer-events:none}
+.drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 22%,transparent);border:3px dashed var(--accent);font-weight:800;font-size:18px;pointer-events:none}
+.stagewrap.over .drop{display:flex}
+.hint{margin:12px 8px 4px;text-align:center;color:var(--muted);font-size:15px;line-height:1.45}
+.meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-top:8px;font-size:13px;color:var(--muted)}
+.grp{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.zoom{min-width:46px;text-align:center;font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+.chip{border:1.5px solid var(--line);background:var(--panel);border-radius:14px;padding:5px 11px;cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);line-height:1.2}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--grad);border-color:transparent;color:var(--onacc)}
+.pill{display:inline-flex;align-items:center;gap:9px;background:var(--soft);border-radius:16px;padding:7px 13px 7px 8px;font-size:13.5px;font-weight:800;color:var(--ink);cursor:pointer}
+.pill input{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:8px;border:2px solid var(--line);background:var(--panel);margin:0;display:grid;place-items:center;cursor:pointer}
+.pill input:checked{background:var(--grad);border-color:transparent}
+.pill input:checked::after{content:"";width:10px;height:5px;border-left:3px solid #fff;border-bottom:3px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.sw{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{outline:3px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:1px}
+.sw.ck{background:conic-gradient(var(--ck2) 25%,var(--ck1) 0 50%,var(--ck2) 0 75%,var(--ck1) 0) 0 0/10px 10px}
+#msg{color:var(--ink);font-weight:800}
+.deco{position:absolute!important;right:18px;bottom:-8px;width:120px;height:120px;color:var(--coral);opacity:.2;z-index:0!important;pointer-events:none}
+
+/* option cards */
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.mc{
+  --c:#0E9AA7; --ic:linear-gradient(135deg,#35C6DE,#119DB8);
+  background:color-mix(in srgb,var(--c) 9%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 22%,var(--panel));
+  border-radius:26px;padding:16px;min-width:0;
+}
+.mc[data-panel="auto"]{--c:#14A9C4;--ic:linear-gradient(135deg,#35C6DE,#119DB8)}
+.mc[data-panel="pin"]{--c:#F0507B;--ic:linear-gradient(135deg,#FF8A6A,#EE4F7D)}
+.mc[data-panel="brush"]{--c:#F5922A;--ic:linear-gradient(135deg,#FFB257,#F5792A)}
+.mc[data-panel="hand"]{--c:#3E86F5;--ic:linear-gradient(135deg,#5B9CFA,#3B6FE0)}
+.mh{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.mi{width:54px;height:54px;border-radius:18px;background:var(--ic);display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 8px 16px color-mix(in srgb,var(--c) 38%,transparent)}
+.mi .ic{width:27px;height:27px}
+.mh h2{margin:0;font-size:19px;font-weight:900;line-height:1.2}
+.mh p{margin:3px 0 0;font-size:13.5px;color:var(--muted);font-weight:600;line-height:1.4}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.field>label,.lbl{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;font-weight:800}
+.field output{font-family:var(--f-mono);font-weight:500;color:var(--muted);font-size:12.5px}
+.field input[type=range]{width:100%;accent-color:var(--c);margin:0}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:13px}
+.row.tight{margin-bottom:0}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--panel);border:1.5px solid color-mix(in srgb,var(--c) 22%,var(--line));border-radius:16px;padding:3px;margin-bottom:13px;position:relative;gap:2px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px 6px;text-align:center;font-size:13.5px;font-weight:800;cursor:pointer;color:var(--muted);border-radius:12px}
+.seg input:checked+label{background:var(--ic);color:#fff;box-shadow:0 5px 12px color-mix(in srgb,var(--c) 34%,transparent)}
+.seg input:focus-visible+label{outline:3px solid color-mix(in srgb,var(--c) 60%,transparent);outline-offset:1px}
+.state{font-size:13px;font-weight:600;color:var(--muted);background:var(--panel);border-radius:14px;padding:9px 12px;margin-bottom:13px}
+.state b{color:var(--ink);font-weight:900}
+.swatch{width:46px;height:34px;padding:0;border:2px solid var(--line);border-radius:12px;background:none;cursor:pointer}
+code{font-family:var(--f-mono);font-size:13px}
+.coords{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.coords label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800;color:var(--muted)}
+.coords input{width:100%;min-width:0;padding:7px 9px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);font-family:var(--f-mono);font-size:13px}
+.dpad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,36px);gap:5px;margin-bottom:13px}
+.dpad button{border:1.5px solid var(--line);background:var(--panel);border-radius:12px;cursor:pointer;font-size:16px;line-height:1;font-weight:800}
+.dpad button:hover:not(:disabled){border-color:var(--c)}
+.dpad button:disabled,.btn:disabled{opacity:.4;cursor:default}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid color-mix(in srgb,var(--c,var(--line)) 30%,var(--line));background:var(--panel);color:var(--ink);border-radius:15px;padding:10px 15px;font-weight:800;font-size:14px;cursor:pointer;line-height:1.2}
+.btn:hover:not(:disabled){border-color:var(--c,var(--muted))}
+.btn.primary{background:var(--ic,var(--grad));color:#fff;border:0;box-shadow:0 6px 14px color-mix(in srgb,var(--c,#0A8F8C) 36%,transparent)}
+.keys{margin:14px 0 0;padding:12px 0 0;border-top:1.5px dashed color-mix(in srgb,var(--c) 30%,var(--line));color:var(--muted);font-size:12.5px;line-height:1.9;font-weight:600}
+kbd{font-family:var(--f-mono);font-size:11.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink)}
+
+/* dock */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:12;
+  padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:linear-gradient(to top,var(--bg) 62%,transparent);
+}
+.dock-in{width:min(100%,1180px);margin:0 auto;display:flex;gap:10px;align-items:stretch}
+.dbtn{height:56px;min-width:56px;border-radius:20px;border:1.5px solid var(--line);background:var(--panel);box-shadow:var(--shadow);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;cursor:pointer;font-weight:800;font-size:15px;color:var(--ink)}
+.dbtn:hover:not(:disabled){border-color:var(--muted)}
+.dbtn:disabled{opacity:.4;cursor:default}
+.dbtn .ic{width:24px;height:24px}
+.dbtn .lab{display:none}
+.dbtn.go{flex:1;border:0;background:var(--grad);color:var(--onacc);font-size:17px;box-shadow:0 10px 22px var(--gsh)}
+.dbtn.reset{color:var(--coral);border-color:color-mix(in srgb,var(--coral) 45%,var(--line))}
+
+/* save fallback */
+.modal{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(6,14,16,.66);padding:16px}
+.modal[hidden]{display:none}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:26px;padding:18px;max-width:min(640px,100%);max-height:100%;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.sheet img{max-width:100%;max-height:58vh;object-fit:contain;border-radius:14px;align-self:center;background:conic-gradient(var(--ck2) 25%,var(--ck1) 0 50%,var(--ck2) 0 75%,var(--ck1) 0) 0 0/16px 16px}
+.sheet p{margin:0;font-size:14px}
+
+@media (min-width:700px){ .dbtn .lab{display:inline} }
+@media (max-width:900px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .stagewrap{height:min(60vh,520px);min-height:300px}
+  .keys{display:none}
+  .hact .round span{display:none}
+  .hact .round{padding:0 14px}
+}
+@media (max-width:420px){
+  .tool{font-size:14px;gap:5px}
+  .tool .ic{width:19px;height:19px}
+  .brand p{font-size:13.5px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="scis" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.7"/><circle cx="6" cy="17.5" r="2.7"/><path d="M8.2 8 21 17.6M8.2 16 21 6.4"/></symbol>
+    <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0FB5A2"/><stop offset="1" stop-color="#1A74C4"/></linearGradient>
+    <symbol id="logoS" viewBox="0 0 64 64">
+      <rect x="3" y="3" width="58" height="58" rx="19" fill="url(#lg)"/>
+      <path d="M10 49c12-3 14-11 23-13" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4" stroke-dasharray="3.5 4.5" stroke-linecap="round"/>
+      <g fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="19" cy="21" r="6.2"/><circle cx="19" cy="43" r="6.2"/>
+        <path d="M24.2 24.6 50 41M24.2 39.4 50 23"/>
+      </g>
+      <g stroke="#FFC9BD" stroke-width="3" stroke-linecap="round"><path d="M46 9.5v5M52.5 12.2l-3 3.6M39.5 12.2l3 3.6"/></g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <header class="hd">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><use href="#logoS"/></svg>
+      <div>
+        <h1>Reypotong<svg class="ic cut" viewBox="0 0 24 24" aria-hidden="true"><use href="#scis"/></svg></h1>
+        <p>Penghapus latar PNG</p>
+      </div>
+    </div>
+    <div class="hact">
+      <label class="round" for="file" title="Buka gambar">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0-4 4m4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span>Buka gambar</span>
+      </label>
+      <input id="file" type="file" accept="image/*" hidden>
+      <button class="round" id="btnSample" type="button" title="Muat gambar contoh">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="m4 17 5-4.5 3.5 3L16 12l4 4"/></svg><span>Contoh</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="cutline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#scis"/></svg></div>
+
+  <nav class="tabs" role="tablist" aria-label="Alat">
+    <button class="tool" role="tab" data-tool="auto" aria-selected="true" title="Otomatis (A)">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 15 9"/><path d="m14 4 .7 1.8L16.5 6.5l-1.8.7L14 9l-.7-1.8-1.8-.7 1.8-.7z"/><path d="m19 11 .5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/></svg>Otomatis
+    </button>
+    <button class="tool" role="tab" data-tool="pin" aria-selected="false" title="Pin sudut (P)">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 8l2 10-12 2z"/><circle cx="6" cy="6" r="1.6" fill="currentColor"/><circle cx="18" cy="8" r="1.6" fill="currentColor"/><circle cx="20" cy="18" r="1.6" fill="currentColor"/><circle cx="8" cy="20" r="1.6" fill="currentColor"/></svg>Pin
+    </button>
+    <button class="tool" role="tab" data-tool="brush" aria-selected="false" title="Kuas (B)">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4 20 10 11 19H5v-6z"/><path d="m12 6 6 6"/></svg>Kuas
+    </button>
+    <button class="tool" role="tab" data-tool="hand" aria-selected="false" title="Geser tampilan (H)">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v5m0-1V4.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 6-5.5 6S6 18 5 15l-1.3-3a1.5 1.5 0 0 1 2.6-1.4L8 12"/></svg>Geser
+    </button>
+  </nav>
+
+  <main class="grid">
+    <section class="pv">
+      <svg class="deco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#scis"/></svg>
+      <div class="stagewrap" id="wrap">
+        <canvas id="stage" aria-label="Kanvas gambar"></canvas>
+        <div class="busy" id="busy" hidden>Menghitung…</div>
+        <div class="drop">Lepas gambar di sini</div>
+      </div>
+      <p class="hint" id="hint"></p>
+      <div class="meta">
+        <div class="grp">
+          <button class="chip" id="zOut" type="button" aria-label="Perkecil">−</button>
+          <span class="zoom" id="zoomV">100%</span>
+          <button class="chip" id="zIn" type="button" aria-label="Perbesar">+</button>
+          <button class="chip" id="zFit" type="button">Pas</button>
+          <button class="chip" id="z100" type="button">100%</button>
+        </div>
+        <div class="grp"><span class="mono" id="coord">x – · y –</span><span class="mono" id="dims"></span></div>
+      </div>
+      <div class="meta">
+        <div class="grp">
+          <button class="chip" id="showOrig" type="button" aria-pressed="false">Lihat asli</button>
+          <label class="pill" for="trim"><input type="checkbox" id="trim">Pangkas ruang kosong</label>
+        </div>
+        <div class="grp">
+          <span>Latar</span>
+          <button class="sw ck" data-bg="checker" aria-pressed="true" aria-label="Kotak-kotak transparan" title="Transparan"></button>
+          <button class="sw" data-bg="#ffffff" style="background:#fff" aria-pressed="false" aria-label="Putih" title="Putih"></button>
+          <button class="sw" data-bg="#000000" style="background:#000" aria-pressed="false" aria-label="Hitam" title="Hitam"></button>
+          <button class="sw" data-bg="#00b050" style="background:#00b050" aria-pressed="false" aria-label="Hijau" title="Hijau"></button>
+        </div>
+      </div>
+      <div class="meta"><span id="msg" aria-live="polite"></span></div>
+    </section>
+
+    <aside class="side">
+      <section class="mc" data-panel="auto">
+        <div class="mh"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 15 9"/><path d="m14 4 .7 1.8L16.5 6.5l-1.8.7L14 9l-.7-1.8-1.8-.7 1.8-.7z"/><path d="m19 11 .5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/></svg></span>
+          <div><h2>Potong otomatis</h2><p>Klik latar pada gambar untuk mengambil warnanya. Pratinjau langsung tampil.</p></div></div>
+        <div class="row">
+          <label for="bgc" class="lbl">Warna latar</label>
+          <input type="color" id="bgc" class="swatch" value="#ffffff">
+          <code id="bgHex">#FFFFFF</code>
+        </div>
+        <div class="lbl" style="margin-bottom:6px">Jangkauan</div>
+        <div class="seg" role="radiogroup" aria-label="Jangkauan">
+          <input type="radio" name="scope" id="sc-all" value="global" checked><label for="sc-all">Semua area serupa</label>
+          <input type="radio" name="scope" id="sc-conn" value="conn"><label for="sc-conn">Terhubung ke klik</label>
+        </div>
+        <div class="field"><label for="tol">Toleransi warna <output id="tolV">24</output></label><input type="range" id="tol" min="0" max="100" value="24"></div>
+        <div class="field"><label for="soft">Kelembutan tepi <output id="softV">28</output></label><input type="range" id="soft" min="1" max="80" value="28"></div>
+        <div class="field" id="minWrap"><label for="minA">Lindungi bintik kecil <output id="minV">60 px</output></label><input type="range" id="minA" min="0" max="2000" step="10" value="60"></div>
+        <div class="state" id="autoState">Belum ada pratinjau.</div>
+        <div class="row tight">
+          <button class="btn primary" id="autoApply" type="button" disabled>Terapkan</button>
+          <button class="btn" id="autoCancel" type="button" disabled>Batalkan pratinjau</button>
+        </div>
+      </section>
+
+      <section class="mc" data-panel="pin" hidden>
+        <div class="mh"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 8l2 10-12 2z"/><circle cx="6" cy="6" r="1.6" fill="currentColor"/><circle cx="18" cy="8" r="1.6" fill="currentColor"/><circle cx="20" cy="18" r="1.6" fill="currentColor"/><circle cx="8" cy="20" r="1.6" fill="currentColor"/></svg></span>
+          <div><h2>Pin sudut</h2><p>Taruh pin mengelilingi objek, lalu geser sampai pas. Perbesar untuk hasil lebih teliti.</p></div></div>
+        <div class="seg" role="radiogroup" aria-label="Mode pin">
+          <input type="radio" name="pmode" id="pm-keep" value="keep" checked><label for="pm-keep">Pertahankan dalam</label>
+          <input type="radio" name="pmode" id="pm-remove" value="remove"><label for="pm-remove">Hapus dalam</label>
+        </div>
+        <div class="field"><label for="feather">Kehalusan tepi <output id="featherV">1 px</output></label><input type="range" id="feather" min="0" max="24" value="1"></div>
+        <div class="state" id="pinState">Belum ada pin.</div>
+        <div class="row">
+          <button class="btn" id="pClose" type="button" disabled>Tutup bentuk</button>
+          <button class="btn" id="pDel" type="button" disabled>Hapus pin</button>
+        </div>
+        <div class="lbl" style="margin-bottom:6px">Pin terpilih (piksel gambar)</div>
+        <div class="coords">
+          <label for="pinX">X<input id="pinX" type="number" step="0.5" disabled></label>
+          <label for="pinY">Y<input id="pinY" type="number" step="0.5" disabled></label>
+        </div>
+        <div class="dpad" aria-label="Geser pin satu piksel">
+          <span></span><button type="button" data-nudge="0,-1" aria-label="Naik" disabled>↑</button><span></span>
+          <button type="button" data-nudge="-1,0" aria-label="Kiri" disabled>←</button><span></span><button type="button" data-nudge="1,0" aria-label="Kanan" disabled>→</button>
+          <span></span><button type="button" data-nudge="0,1" aria-label="Turun" disabled>↓</button><span></span>
+        </div>
+        <div class="row tight">
+          <button class="btn primary" id="pApply" type="button" disabled>Terapkan</button>
+          <button class="btn" id="pClear" type="button" disabled>Bersihkan pin</button>
+        </div>
+        <div class="keys">
+          Klik garis untuk menambah pin · klik dua kali pada pin atau <kbd>Del</kbd> untuk menghapus<br>
+          <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> geser 1 px, <kbd>Shift</kbd> 10 px, <kbd>Alt</kbd> 0,25 px<br>
+          <kbd>Enter</kbd> terapkan · <kbd>Esc</kbd> batal
+        </div>
+      </section>
+
+      <section class="mc" data-panel="brush" hidden>
+        <div class="mh"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4 20 10 11 19H5v-6z"/><path d="m12 6 6 6"/></svg></span>
+          <div><h2>Kuas</h2><p>Rapikan tepi atau kembalikan bagian yang terhapus. Seret pada gambar.</p></div></div>
+        <div class="seg" role="radiogroup" aria-label="Mode kuas">
+          <input type="radio" name="bmode" id="bm-erase" value="erase" checked><label for="bm-erase">Hapus</label>
+          <input type="radio" name="bmode" id="bm-restore" value="restore"><label for="bm-restore">Kembalikan</label>
+        </div>
+        <div class="field"><label for="bsize">Ukuran <output id="bsizeV">40 px</output></label><input type="range" id="bsize" min="2" max="300" value="40"></div>
+        <div class="field"><label for="bhard">Kekerasan tepi <output id="bhardV">60%</output></label><input type="range" id="bhard" min="0" max="100" value="60"></div>
+        <div class="keys" style="border-top:0;padding-top:0;margin-top:0">Ukuran kuas mengikuti piksel gambar, jadi tampak mengecil saat tampilan diperbesar. Tombol <kbd>[</kbd> dan <kbd>]</kbd> mengubah ukuran.</div>
+      </section>
+
+      <section class="mc" data-panel="hand" hidden>
+        <div class="mh"><span class="mi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a1.5 1.5 0 0 1 3 0v5m0-1V4.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14c0 4-2.5 6-5.5 6S6 18 5 15l-1.3-3a1.5 1.5 0 0 1 2.6-1.4L8 12"/></svg></span>
+          <div><h2>Geser tampilan</h2><p>Seret untuk menggeser. Gulir atau cubit dua jari untuk zoom. Di alat lain, tahan <kbd>Spasi</kbd> sambil menyeret.</p></div></div>
+        <div class="row tight"><button class="btn" id="fitBtn2" type="button">Pas ke layar</button><button class="btn" id="oneBtn2" type="button">100%</button></div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<div class="dock">
+  <div class="dock-in">
+    <button class="dbtn" id="undo" type="button" title="Urungkan (Ctrl+Z)" aria-label="Urungkan" disabled>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span class="lab">Urungkan</span></button>
+    <button class="dbtn" id="redo" type="button" title="Ulangi (Ctrl+Shift+Z)" aria-label="Ulangi" disabled>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg><span class="lab">Ulangi</span></button>
+    <button class="dbtn reset" id="reset" type="button" title="Kembalikan ke gambar asli" aria-label="Mulai ulang">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg><span class="lab">Mulai ulang</span></button>
+    <button class="dbtn go" id="dl" type="button">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4"/><path d="M4 19h16"/></svg>Unduh PNG</button>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-label="Simpan gambar">
+    <p><b>Hasil siap.</b> Tahan lama gambar di bawah (atau klik kanan) lalu pilih simpan gambar.</p>
+    <img id="modalImg" alt="Hasil potongan transparan">
+    <div><button class="btn" id="modalClose" type="button">Tutup</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const stage = $('#stage'), sctx = stage.getContext('2d');
+const wrap = $('#wrap');
+
+/* ---------- state ---------- */
+let W = 0, H = 0, orig = null, origCanvas = null;
+let mask = null, aAuto = null, dec = null, decColors = [];
+let comp = null, compCtx = null, compImg = null;
+let fileName = 'gambar';
+let view = { s: 1, ox: 0, oy: 0 }, minScale = 0.05, fitted = true;
+let cw = 0, ch = 0, dpr = 1;
+let tool = 'auto';
+let history = [], redoStack = [];
+let showOrig = false, previewBg = 'checker';
+let preview = null;
+const params = { color: [255, 255, 255], tol: 24, soft: 28, minArea: 60, scope: 'global', seed: null };
+const poly = { pins: [], closed: false, sel: -1, drag: -1 };
+let hover = { pin: -1, edge: null };
+let cursor = null;
+let spaceDown = false;
+let downloads = null;
+let css = { stage: '#DCE0E5', accent: '#0B63C9', ck1: '#fff', ck2: '#cfd4da' };
+let checker = null;
+let raf = 0, prevTimer = 0, msgTimer = 0;
+
+/* ---------- helpers ---------- */
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const hex2 = v => (v < 16 ? '0' : '') + v.toString(16);
+const rgb2hex = c => '#' + hex2(c[0]) + hex2(c[1]) + hex2(c[2]);
+function say(t) {
+  const m = $('#msg'); m.textContent = t; clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { m.textContent = ''; }, 3500);
+}
+function requestDraw() { if (!raf) raf = requestAnimationFrame(draw); }
+
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n, d) => cs.getPropertyValue(n).trim() || d;
+  css.stage = g('--stage', css.stage); css.accent = g('--accent', css.accent);
+  css.ck1 = g('--ck1', css.ck1); css.ck2 = g('--ck2', css.ck2);
+  const c = document.createElement('canvas'); c.width = c.height = 20;
+  const x = c.getContext('2d'); x.fillStyle = css.ck1; x.fillRect(0, 0, 20, 20);
+  x.fillStyle = css.ck2; x.fillRect(0, 0, 10, 10); x.fillRect(10, 10, 10, 10);
+  checker = sctx.createPattern(c, 'repeat');
+  requestDraw();
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
+new MutationObserver(readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- image loading ---------- */
+async function toBitmap(src) {
+  if (window.createImageBitmap) { try { return await createImageBitmap(src); } catch (e) { /* fallthrough */ } }
+  if (src instanceof Blob) {
+    const url = URL.createObjectURL(src);
+    try {
+      const img = new Image(); img.src = url; await img.decode(); return img;
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
+  }
+  return src;
+}
+async function loadSource(src, name) {
+  let bmp;
+  try { bmp = await toBitmap(src); } catch (e) { say('Gambar tidak bisa dibuka.'); return; }
+  const w0 = bmp.width, h0 = bmp.height, MAXS = 3600;
+  const k = Math.min(1, MAXS / Math.max(w0, h0));
+  W = Math.round(w0 * k); H = Math.round(h0 * k);
+  origCanvas = document.createElement('canvas'); origCanvas.width = W; origCanvas.height = H;
+  const c = origCanvas.getContext('2d', { willReadFrequently: true });
+  c.drawImage(bmp, 0, 0, W, H);
+  orig = c.getImageData(0, 0, W, H).data;
+  const n = W * H;
+  mask = new Uint8Array(n); for (let i = 0; i < n; i++) mask[i] = orig[i * 4 + 3];
+  aAuto = new Uint8Array(n); dec = new Uint8Array(n); decColors = [];
+  comp = document.createElement('canvas'); comp.width = W; comp.height = H;
+  compCtx = comp.getContext('2d'); compImg = compCtx.createImageData(W, H);
+  history = []; redoStack = []; preview = null;
+  poly.pins = []; poly.closed = false; poly.sel = -1; poly.drag = -1; hover = { pin: -1, edge: null };
+  fileName = (name || 'gambar').replace(/\.[^.]+$/, '') || 'gambar';
+  $('#dims').textContent = W + ' × ' + H + ' px' + (k < 1 ? ' (diperkecil)' : '');
+  if (k < 1) say('Gambar sangat besar, diperkecil ke ' + W + '×' + H + '.');
+  sizeStage(); fitted = true; fit();
+  detectBg();
+  paintAll(); syncPanels(); updateButtons(); requestDraw();
+  schedulePreview(0);
+}
+function detectBg() {
+  const px = (x, y) => { const j = (y * W + x) * 4; return [orig[j], orig[j + 1], orig[j + 2]]; };
+  const cs = [px(0, 0), px(W - 1, 0), px(0, H - 1), px(W - 1, H - 1)];
+  const near = cs.filter(c => Math.max(Math.abs(c[0] - cs[0][0]), Math.abs(c[1] - cs[0][1]), Math.abs(c[2] - cs[0][2])) < 40);
+  const col = [0, 1, 2].map(i => Math.round(near.reduce((a, c) => a + c[i], 0) / near.length));
+  setColor(col);
+}
+function setColor(col) {
+  params.color = col;
+  $('#bgc').value = rgb2hex(col); $('#bgHex').textContent = rgb2hex(col).toUpperCase();
+}
+function makeSample() {
+  const c = document.createElement('canvas'); c.width = 1280; c.height = 800;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 1280, 800);
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const line = (x1, y1, x2, y2) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
+  g.lineCap = 'round'; g.strokeStyle = '#1d2a2c';
+  g.lineWidth = 14; line(110, 800, 110, 330); line(110, 330, 640, 40); line(640, 40, 1170, 330); line(1170, 330, 1170, 800);
+  g.lineWidth = 9; line(640, 40, 640, 330); line(110, 330, 1170, 330);
+  // pot gantung dan pakis
+  g.strokeStyle = '#3b3028'; g.lineWidth = 2;
+  line(400, 150, 322, 312); line(400, 150, 478, 312); line(400, 150, 400, 300);
+  for (let k = 0; k < 80; k++) {
+    const a = Math.PI * (0.02 + 0.96 * rnd()), len = 80 + rnd() * 120;
+    const ex = 400 + Math.cos(a) * len, ey = 300 + Math.sin(a) * len * 0.95;
+    g.strokeStyle = 'hsl(' + (100 + rnd() * 30) + ',55%,' + (20 + rnd() * 20) + '%)';
+    g.lineWidth = 4 + rnd() * 7;
+    g.beginPath(); g.moveTo(400, 300); g.quadraticCurveTo(400 + Math.cos(a) * len * 0.6, 270 + Math.sin(a) * len * 0.2, ex, ey); g.stroke();
+  }
+  g.fillStyle = '#8a5a34'; g.beginPath(); g.ellipse(400, 322, 84, 40, 0, 0, Math.PI * 2); g.fill();
+  // monstera
+  const leaf = (x, y, r, rot) => {
+    g.save(); g.translate(x, y); g.rotate(rot);
+    const gr = g.createLinearGradient(-r, -r, r, r); gr.addColorStop(0, '#2c6b50'); gr.addColorStop(1, '#0f2f25');
+    g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, r, r * 0.86, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(160,210,180,.55)'; g.lineWidth = 3; g.beginPath(); g.moveTo(-r * 0.8, 0); g.lineTo(r * 0.8, 0); g.stroke();
+    g.fillStyle = '#fff';
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * Math.PI * 2 + 0.3, d = r * (0.45 + rnd() * 0.3);
+      g.beginPath(); g.ellipse(Math.cos(a) * d, Math.sin(a) * d, r * 0.1, r * 0.2, a, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+  };
+  g.strokeStyle = '#2a5a3f'; g.lineWidth = 7; line(860, 430, 905, 740); line(1000, 330, 905, 740); line(770, 560, 905, 740);
+  leaf(770, 560, 120, -0.9); leaf(860, 430, 150, -0.3); leaf(1000, 330, 130, 0.4);
+  // meja dan lentera
+  g.fillStyle = '#6b4a32'; g.fillRect(140, 660, 360, 34);
+  g.strokeStyle = '#4b3322'; g.lineWidth = 14; line(170, 694, 170, 790); line(470, 694, 470, 790);
+  g.strokeStyle = '#8a5a2b'; g.lineWidth = 8;
+  g.beginPath(); g.arc(320, 470, 38, Math.PI, 0); g.stroke();
+  g.fillStyle = '#7a4d24'; g.fillRect(272, 468, 96, 16); g.fillRect(264, 640, 112, 20);
+  const gl = g.createRadialGradient(320, 560, 4, 320, 560, 80);
+  gl.addColorStop(0, '#fffef2'); gl.addColorStop(0.3, '#ffd882'); gl.addColorStop(1, '#d98a2b');
+  g.fillStyle = gl; g.beginPath(); g.roundRect ? g.roundRect(278, 484, 84, 156, 26) : g.rect(278, 484, 84, 156); g.fill();
+  g.strokeStyle = '#8a5a2b'; g.lineWidth = 6; g.beginPath(); g.moveTo(272, 484); g.lineTo(272, 640); g.moveTo(368, 484); g.lineTo(368, 640); g.stroke();
+  return c;
+}
+
+/* ---------- compositing ---------- */
+function paintComp(x0, y0, x1, y1, usePreview, outData) {
+  const out = outData || compImg.data;
+  const pa = usePreview && preview ? preview.alpha : null, pc = preview ? preview.color : null;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = y * W + x, j = i * 4;
+      let m = mask[i], r = orig[j], g = orig[j + 1], b = orig[j + 2], used = false;
+      if (pa) {
+        const p = pa[i];
+        if (p < m) {
+          m = p; used = true;
+          if (p > 0) { const a = p / 255, ia = 1 - a; r = (r - ia * pc[0]) / a; g = (g - ia * pc[1]) / a; b = (b - ia * pc[2]) / a; }
+        }
+      }
+      if (!used && m > 0 && m < 255 && dec[i]) {
+        const a = aAuto[i] / 255;
+        if (a > 0) { const B = decColors[dec[i] - 1], ia = 1 - a; r = (r - ia * B[0]) / a; g = (g - ia * B[1]) / a; b = (b - ia * B[2]) / a; }
+      }
+      if (m === 0) { out[j] = 0; out[j + 1] = 0; out[j + 2] = 0; out[j + 3] = 0; }
+      else { out[j] = r; out[j + 1] = g; out[j + 2] = b; out[j + 3] = m; }
+    }
+  }
+}
+function paintAll() { paintComp(0, 0, W, H, true); compCtx.putImageData(compImg, 0, 0); }
+function paintRect(x0, y0, x1, y1) {
+  x0 = clamp(Math.floor(x0), 0, W); y0 = clamp(Math.floor(y0), 0, H);
+  x1 = clamp(Math.ceil(x1), 0, W); y1 = clamp(Math.ceil(y1), 0, H);
+  if (x1 <= x0 || y1 <= y0) return;
+  paintComp(x0, y0, x1, y1, true);
+  compCtx.putImageData(compImg, 0, 0, x0, y0, x1 - x0, y1 - y0);
+}
+
+/* ---------- auto cut ---------- */
+function dilate(src) {
+  const o = src.slice();
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (!src[i]) continue;
+      const xa = x > 0, xb = x < W - 1;
+      if (y > 0) { o[i - W] = 1; if (xa) o[i - W - 1] = 1; if (xb) o[i - W + 1] = 1; }
+      if (xa) o[i - 1] = 1; if (xb) o[i + 1] = 1;
+      if (y < H - 1) { o[i + W] = 1; if (xa) o[i + W - 1] = 1; if (xb) o[i + W + 1] = 1; }
+    }
+  }
+  return o;
+}
+function computeAuto() {
+  const n = W * H, B = params.color, T = params.tol, S = Math.max(1, params.soft);
+  const d = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const j = i * 4;
+    const dr = Math.abs(orig[j] - B[0]), dg = Math.abs(orig[j + 1] - B[1]), db = Math.abs(orig[j + 2] - B[2]);
+    d[i] = dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
+  }
+  const bg = new Uint8Array(n), vis = new Uint8Array(n), q = new Int32Array(n);
+  const flood = (start, minArea) => {
+    let head = 0, tail = 0; q[tail++] = start; vis[start] = 1;
+    while (head < tail) {
+      const i = q[head++], x = i % W;
+      if (x > 0 && !vis[i - 1] && d[i - 1] <= T) { vis[i - 1] = 1; q[tail++] = i - 1; }
+      if (x < W - 1 && !vis[i + 1] && d[i + 1] <= T) { vis[i + 1] = 1; q[tail++] = i + 1; }
+      if (i >= W && !vis[i - W] && d[i - W] <= T) { vis[i - W] = 1; q[tail++] = i - W; }
+      if (i < n - W && !vis[i + W] && d[i + W] <= T) { vis[i + W] = 1; q[tail++] = i + W; }
+    }
+    if (tail >= minArea) for (let k = 0; k < tail; k++) bg[q[k]] = 1;
+  };
+  if (params.scope === 'conn') {
+    if (params.seed) {
+      const s = params.seed[1] * W + params.seed[0];
+      if (d[s] <= T) flood(s, 0);
+    }
+  } else {
+    for (let i = 0; i < n; i++) if (!vis[i] && d[i] <= T) flood(i, params.minArea);
+  }
+  const near = dilate(dilate(bg));
+  const alpha = new Uint8Array(n); let removed = 0;
+  for (let i = 0; i < n; i++) {
+    if (bg[i]) { alpha[i] = 0; removed++; }
+    else if (near[i] && d[i] > T && d[i] < T + S) alpha[i] = Math.round(255 * (d[i] - T) / S);
+    else alpha[i] = 255;
+  }
+  return { alpha, color: B.slice(), removed: removed / n };
+}
+function schedulePreview(delay) {
+  clearTimeout(prevTimer);
+  if (!orig) return;
+  $('#busy').hidden = false;
+  prevTimer = setTimeout(() => {
+    preview = computeAuto();
+    paintAll(); requestDraw();
+    $('#busy').hidden = true;
+    syncAutoState();
+  }, delay);
+}
+function syncAutoState() {
+  const st = $('#autoState');
+  if (preview) st.innerHTML = 'Pratinjau belum diterapkan. Akan terhapus <b>' + (preview.removed * 100).toFixed(1) + '%</b> dari gambar.';
+  else st.textContent = 'Belum ada pratinjau. Klik latar pada gambar atau geser pengaturan.';
+  $('#autoApply').disabled = !preview; $('#autoCancel').disabled = !preview;
+}
+function colorIndex(c) {
+  for (let k = 0; k < decColors.length; k++) { const e = decColors[k]; if (e[0] === c[0] && e[1] === c[1] && e[2] === c[2]) return k + 1; }
+  if (decColors.length >= 255) return 255;
+  decColors.push(c.slice()); return decColors.length;
+}
+function applyAuto() {
+  if (!preview) return;
+  const pa = preview.alpha, n = W * H;
+  let changed = false;
+  for (let i = 0; i < n; i++) if (pa[i] < mask[i]) { changed = true; break; }
+  if (changed) {
+    pushHistory();
+    const ci = colorIndex(preview.color), a2 = aAuto.slice(), d2 = dec.slice();
+    for (let i = 0; i < n; i++) {
+      const p = pa[i];
+      if (p < mask[i]) { if (p > 0 && p < 255) { a2[i] = p; d2[i] = ci; } mask[i] = p; }
+    }
+    aAuto = a2; dec = d2;
+  }
+  preview = null; clearTimeout(prevTimer); $('#busy').hidden = true;
+  paintAll(); syncAutoState(); updateButtons(); requestDraw();
+}
+function cancelAuto() {
+  preview = null; clearTimeout(prevTimer); $('#busy').hidden = true;
+  paintAll(); syncAutoState(); requestDraw();
+}
+
+/* ---------- history ---------- */
+function snap() { return { mask: mask.slice(), aAuto, dec, decColors: decColors.slice() }; }
+function restore(s) { mask = s.mask; aAuto = s.aAuto; dec = s.dec; decColors = s.decColors; }
+function pushHistory() {
+  history.push(snap()); if (history.length > 12) history.shift();
+  redoStack.length = 0; updateButtons();
+}
+function undo() {
+  if (!history.length) return;
+  if (preview) cancelAuto();
+  redoStack.push(snap()); restore(history.pop());
+  paintAll(); updateButtons(); requestDraw();
+}
+function redo() {
+  if (!redoStack.length) return;
+  if (preview) cancelAuto();
+  history.push(snap()); restore(redoStack.pop());
+  paintAll(); updateButtons(); requestDraw();
+}
+function resetAll() {
+  if (!orig) return;
+  if (preview) cancelAuto();
+  pushHistory();
+  const n = W * H; mask = new Uint8Array(n); for (let i = 0; i < n; i++) mask[i] = orig[i * 4 + 3];
+  aAuto = new Uint8Array(n); dec = new Uint8Array(n); decColors = [];
+  poly.pins = []; poly.closed = false; poly.sel = -1;
+  paintAll(); syncPanels(); updateButtons(); requestDraw();
+  say('Gambar dikembalikan ke asli.');
+}
+function updateButtons() {
+  $('#undo').disabled = !history.length; $('#redo').disabled = !redoStack.length;
+}
+
+/* ---------- view ---------- */
+function sizeStage() {
+  if (!W) return;
+  if (!matchMedia('(max-width:900px)').matches) { wrap.style.height = ''; return; }
+  const avail = wrap.parentElement.clientWidth - 28;
+  const want = avail * H / W + 40;
+  wrap.style.height = clamp(want, 240, Math.max(260, innerHeight * 0.6)) + 'px';
+}
+window.addEventListener('resize', sizeStage);
+function fit() {
+  if (!W || !cw) return;
+  const pad = 24, s = Math.min((cw - pad * 2) / W, (ch - pad * 2) / H);
+  view.s = s; view.ox = (cw - W * s) / 2; view.oy = (ch - H * s) / 2; minScale = s * 0.25;
+  updateZoom();
+}
+function updateZoom() { $('#zoomV').textContent = Math.round(view.s * 100) + '%'; }
+function zoomAt(sx, sy, k) {
+  const ns = clamp(view.s * k, minScale, 40), f = ns / view.s;
+  view.ox = sx - (sx - view.ox) * f; view.oy = sy - (sy - view.oy) * f; view.s = ns;
+  fitted = false; updateZoom(); requestDraw();
+}
+function zoomTo(sx, sy, target) { zoomAt(sx, sy, target / view.s); }
+function toImg(e) {
+  const r = stage.getBoundingClientRect();
+  return { sx: e.clientX - r.left, sy: e.clientY - r.top, x: (e.clientX - r.left - view.ox) / view.s, y: (e.clientY - r.top - view.oy) / view.s };
+}
+const ro = new ResizeObserver(() => {
+  const r = wrap.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1; cw = r.width; ch = r.height;
+  stage.width = Math.max(1, Math.round(cw * dpr)); stage.height = Math.max(1, Math.round(ch * dpr));
+  if (fitted) fit(); requestDraw();
+});
+ro.observe(wrap);
+
+/* ---------- drawing ---------- */
+function draw() {
+  raf = 0;
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sctx.fillStyle = css.stage; sctx.fillRect(0, 0, cw, ch);
+  if (!comp) return;
+  const s = view.s, ox = view.ox, oy = view.oy;
+  sctx.fillStyle = previewBg === 'checker' ? checker : previewBg;
+  sctx.fillRect(ox, oy, W * s, H * s);
+  sctx.imageSmoothingEnabled = s < 2;
+  sctx.imageSmoothingQuality = 'high';
+  sctx.drawImage(showOrig ? origCanvas : comp, ox, oy, W * s, H * s);
+  sctx.strokeStyle = 'rgba(128,136,146,.7)'; sctx.lineWidth = 1; sctx.strokeRect(ox - .5, oy - .5, W * s + 1, H * s + 1);
+  if (tool === 'pin') drawPoly();
+  if (tool === 'brush' && cursor && !gesture) {
+    const rr = brush.size / 2 * s;
+    sctx.beginPath(); sctx.arc(cursor.sx, cursor.sy, Math.max(rr, 1), 0, Math.PI * 2);
+    sctx.lineWidth = 3; sctx.strokeStyle = 'rgba(0,0,0,.7)'; sctx.stroke();
+    sctx.lineWidth = 1.5; sctx.strokeStyle = '#fff'; sctx.stroke();
+  }
+  if (tool === 'pin' && poly.drag >= 0 && poly.pins[poly.drag]) drawLoupe(poly.pins[poly.drag].x, poly.pins[poly.drag].y);
+}
+function drawPoly() {
+  const s = view.s, P = poly.pins.map(p => [p.x * s + view.ox, p.y * s + view.oy]);
+  if (!P.length) return;
+  const keep = $('#pm-keep').checked;
+  const path = () => {
+    sctx.beginPath();
+    P.forEach((q, i) => i ? sctx.lineTo(q[0], q[1]) : sctx.moveTo(q[0], q[1]));
+    if (poly.closed) sctx.closePath();
+  };
+  if (poly.closed && P.length >= 3) {
+    sctx.save(); sctx.beginPath();
+    if (keep) sctx.rect(view.ox, view.oy, W * s, H * s);
+    P.forEach((q, i) => i ? sctx.lineTo(q[0], q[1]) : sctx.moveTo(q[0], q[1]));
+    sctx.closePath(); sctx.fillStyle = 'rgba(217,58,64,.34)'; sctx.fill('evenodd'); sctx.restore();
+  }
+  sctx.lineJoin = 'round';
+  path(); sctx.lineWidth = 3.5; sctx.strokeStyle = 'rgba(0,0,0,.75)'; sctx.stroke();
+  path(); sctx.lineWidth = 1.5; sctx.strokeStyle = '#fff'; sctx.stroke();
+  if (!poly.closed && cursor && poly.drag < 0 && !gesture) {
+    const l = P[P.length - 1];
+    sctx.setLineDash([5, 5]); sctx.beginPath(); sctx.moveTo(l[0], l[1]); sctx.lineTo(cursor.sx, cursor.sy);
+    sctx.lineWidth = 3; sctx.strokeStyle = 'rgba(0,0,0,.55)'; sctx.stroke();
+    sctx.lineWidth = 1.2; sctx.strokeStyle = '#fff'; sctx.stroke(); sctx.setLineDash([]);
+  }
+  if (hover.edge && poly.drag < 0) {
+    const hx = hover.edge.x * s + view.ox, hy = hover.edge.y * s + view.oy;
+    sctx.beginPath(); sctx.arc(hx, hy, 6, 0, Math.PI * 2); sctx.fillStyle = css.accent; sctx.fill();
+    sctx.lineWidth = 1.5; sctx.strokeStyle = '#fff'; sctx.stroke();
+    sctx.beginPath(); sctx.moveTo(hx - 3, hy); sctx.lineTo(hx + 3, hy); sctx.moveTo(hx, hy - 3); sctx.lineTo(hx, hy + 3);
+    sctx.lineWidth = 1.5; sctx.strokeStyle = '#fff'; sctx.stroke();
+  }
+  P.forEach((q, i) => {
+    const sel = i === poly.sel;
+    if (i === 0 && P.length >= 3 && !poly.closed) {
+      sctx.beginPath(); sctx.arc(q[0], q[1], 10, 0, Math.PI * 2); sctx.lineWidth = 2.5; sctx.strokeStyle = '#1F9D63'; sctx.stroke();
+    }
+    sctx.beginPath(); sctx.arc(q[0], q[1], sel ? 7 : 5.5, 0, Math.PI * 2);
+    sctx.fillStyle = sel ? css.accent : '#fff'; sctx.fill();
+    sctx.lineWidth = 2; sctx.strokeStyle = '#101418'; sctx.stroke();
+    if (sel) { sctx.lineWidth = 1.2; sctx.strokeStyle = '#fff'; sctx.stroke(); }
+  });
+}
+function drawLoupe(px, py) {
+  const size = Math.round(Math.min(150, Math.min(cw, ch) * 0.38)), Z = 6, m = 10;
+  const pinSX = px * view.s + view.ox;
+  const left = pinSX > cw / 2 ? m : cw - size - m, top = m;
+  sctx.save();
+  sctx.beginPath(); sctx.arc(left + size / 2, top + size / 2, size / 2, 0, Math.PI * 2); sctx.clip();
+  sctx.fillStyle = previewBg === 'checker' ? checker : previewBg; sctx.fillRect(left, top, size, size);
+  const win = size / Z, sx = px - win / 2, sy = py - win / 2;
+  const ix0 = Math.max(0, sx), iy0 = Math.max(0, sy), ix1 = Math.min(W, sx + win), iy1 = Math.min(H, sy + win);
+  if (ix1 > ix0 && iy1 > iy0) {
+    sctx.imageSmoothingEnabled = false;
+    sctx.drawImage(showOrig ? origCanvas : comp, ix0, iy0, ix1 - ix0, iy1 - iy0, left + (ix0 - sx) * Z, top + (iy0 - sy) * Z, (ix1 - ix0) * Z, (iy1 - iy0) * Z);
+  }
+  const cx = left + size / 2, cy = top + size / 2;
+  sctx.lineWidth = 1; sctx.strokeStyle = 'rgba(255,255,255,.9)';
+  sctx.beginPath(); sctx.moveTo(cx - 14, cy); sctx.lineTo(cx + 14, cy); sctx.moveTo(cx, cy - 14); sctx.lineTo(cx, cy + 14); sctx.stroke();
+  sctx.strokeStyle = 'rgba(0,0,0,.8)';
+  sctx.beginPath(); sctx.moveTo(cx - 14, cy + 1); sctx.lineTo(cx + 14, cy + 1); sctx.moveTo(cx + 1, cy - 14); sctx.lineTo(cx + 1, cy + 14); sctx.stroke();
+  sctx.restore();
+  sctx.beginPath(); sctx.arc(left + size / 2, top + size / 2, size / 2, 0, Math.PI * 2);
+  sctx.lineWidth = 3; sctx.strokeStyle = '#101418'; sctx.stroke(); sctx.lineWidth = 1.5; sctx.strokeStyle = '#fff'; sctx.stroke();
+}
+
+/* ---------- polygon ---------- */
+function hitPin(sx, sy, touch) {
+  const R = touch ? 16 : 10, s = view.s;
+  for (let i = poly.pins.length - 1; i >= 0; i--) {
+    const dx = poly.pins[i].x * s + view.ox - sx, dy = poly.pins[i].y * s + view.oy - sy;
+    if (dx * dx + dy * dy <= R * R) return i;
+  }
+  return -1;
+}
+function hitEdge(sx, sy, touch) {
+  const n = poly.pins.length, s = view.s, R = touch ? 12 : 8;
+  if (n < 2) return null;
+  const last = poly.closed ? n : n - 1; let best = null, bd = R;
+  for (let i = 0; i < last; i++) {
+    const a = poly.pins[i], b = poly.pins[(i + 1) % n];
+    const ax = a.x * s + view.ox, ay = a.y * s + view.oy, bx = b.x * s + view.ox, by = b.y * s + view.oy;
+    const vx = bx - ax, vy = by - ay, L = vx * vx + vy * vy;
+    let t = L ? ((sx - ax) * vx + (sy - ay) * vy) / L : 0; t = clamp(t, 0, 1);
+    const qx = ax + vx * t, qy = ay + vy * t, dd = Math.hypot(sx - qx, sy - qy);
+    if (dd < bd) { bd = dd; best = { idx: i, x: (qx - view.ox) / s, y: (qy - view.oy) / s }; }
+  }
+  return best;
+}
+function boxBlur(a, w, h, r) {
+  const tmp = new Uint8Array(a.length), win = 2 * r + 1;
+  for (let y = 0; y < h; y++) {
+    const row = y * w; let sum = 0;
+    for (let k = -r; k <= r; k++) sum += a[row + clamp(k, 0, w - 1)];
+    for (let x = 0; x < w; x++) {
+      tmp[row + x] = Math.round(sum / win);
+      sum += a[row + clamp(x + r + 1, 0, w - 1)] - a[row + clamp(x - r, 0, w - 1)];
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let sum = 0;
+    for (let k = -r; k <= r; k++) sum += tmp[clamp(k, 0, h - 1) * w + x];
+    for (let y = 0; y < h; y++) {
+      a[y * w + x] = Math.round(sum / win);
+      sum += tmp[clamp(y + r + 1, 0, h - 1) * w + x] - tmp[clamp(y - r, 0, h - 1) * w + x];
+    }
+  }
+}
+function applyPoly() {
+  if (!poly.closed || poly.pins.length < 3) return;
+  pushHistory();
+  const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+  const c = oc.getContext('2d', { willReadFrequently: true });
+  c.fillStyle = '#fff'; c.beginPath();
+  poly.pins.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+  c.closePath(); c.fill();
+  const d = c.getImageData(0, 0, W, H).data, n = W * H, cov = new Uint8Array(n);
+  for (let i = 0; i < n; i++) cov[i] = d[i * 4 + 3];
+  const f = +$('#feather').value;
+  if (f > 0) { boxBlur(cov, W, H, f); boxBlur(cov, W, H, f); }
+  const keep = $('#pm-keep').checked;
+  for (let i = 0; i < n; i++) mask[i] = keep ? Math.round(mask[i] * cov[i] / 255) : Math.round(mask[i] * (255 - cov[i]) / 255);
+  poly.pins = []; poly.closed = false; poly.sel = -1; poly.drag = -1;
+  paintAll(); syncPinPanel(); updateButtons(); requestDraw();
+  say('Potongan pin diterapkan.');
+}
+function clearPoly() { poly.pins = []; poly.closed = false; poly.sel = -1; poly.drag = -1; syncPinPanel(); requestDraw(); }
+function deletePin(i) {
+  if (i < 0 || i >= poly.pins.length) return;
+  poly.pins.splice(i, 1);
+  if (poly.pins.length < 3) poly.closed = false;
+  poly.sel = Math.min(poly.sel >= i ? poly.sel - 1 : poly.sel, poly.pins.length - 1);
+  if (!poly.pins.length) poly.sel = -1;
+  syncPinPanel(); requestDraw();
+}
+function movePin(i, x, y) {
+  const p = poly.pins[i]; if (!p) return;
+  p.x = clamp(x, 0, W); p.y = clamp(y, 0, H);
+}
+function syncPinPanel() {
+  const n = poly.pins.length;
+  $('#pinState').innerHTML = !n ? 'Belum ada pin. Klik pada gambar untuk mulai.'
+    : '<b>' + n + ' pin</b> · ' + (poly.closed ? 'bentuk tertutup, siap diterapkan' : (n >= 3 ? 'klik pin pertama (cincin hijau) untuk menutup' : 'tambah minimal 3 pin'));
+  $('#pClose').disabled = !(n >= 3 && !poly.closed);
+  $('#pDel').disabled = poly.sel < 0;
+  $('#pApply').disabled = !(poly.closed && n >= 3);
+  $('#pClear').disabled = !n;
+  const has = poly.sel >= 0, p = has ? poly.pins[poly.sel] : null;
+  $('#pinX').disabled = !has; $('#pinY').disabled = !has;
+  if (has && document.activeElement !== $('#pinX')) $('#pinX').value = p.x.toFixed(1);
+  if (has && document.activeElement !== $('#pinY')) $('#pinY').value = p.y.toFixed(1);
+  if (!has) { $('#pinX').value = ''; $('#pinY').value = ''; }
+  $$('[data-nudge]').forEach(b => { b.disabled = !has; });
+}
+
+/* ---------- brush ---------- */
+const brush = { size: 40, hard: 0.6, mode: 'erase' };
+function stamp(cx, cy) {
+  const r = brush.size / 2, ri = Math.ceil(r) + 1, hard = brush.hard, erase = brush.mode === 'erase';
+  const x0 = clamp(Math.floor(cx - ri), 0, W), x1 = clamp(Math.ceil(cx + ri), 0, W);
+  const y0 = clamp(Math.floor(cy - ri), 0, H), y1 = clamp(Math.ceil(cy + ri), 0, H);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, dd = Math.sqrt(dx * dx + dy * dy);
+      if (dd > r) continue;
+      const t = dd / r; const sgt = t <= hard ? 1 : 1 - (t - hard) / (1 - hard + 1e-6);
+      const i = y * W + x, m = mask[i];
+      mask[i] = erase ? Math.floor(m * (1 - sgt)) : Math.ceil(m + (255 - m) * sgt);
+    }
+  }
+  return [x0, y0, x1, y1];
+}
+function strokeTo(a, b) {
+  const step = Math.max(1, brush.size * 0.18), dist = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(dist / step));
+  let bx0 = 1e9, by0 = 1e9, bx1 = -1, by1 = -1;
+  for (let k = 1; k <= n; k++) {
+    const t = k / n, r = stamp(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+    bx0 = Math.min(bx0, r[0]); by0 = Math.min(by0, r[1]); bx1 = Math.max(bx1, r[2]); by1 = Math.max(by1, r[3]);
+  }
+  paintRect(bx0, by0, bx1, by1); requestDraw();
+}
+
+/* ---------- pointer interaction ---------- */
+const ptrs = new Map(); let gesture = null, pinch = null;
+function startPinch() {
+  const [a, b] = Array.from(ptrs.values());
+  const r = stage.getBoundingClientRect();
+  pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2 - r.left, cy: (a.y + b.y) / 2 - r.top, s: view.s, ox: view.ox, oy: view.oy };
+  gesture = null; poly.drag = -1;
+}
+stage.addEventListener('pointerdown', e => {
+  if (!orig) return;
+  stage.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) { startPinch(); return; }
+  if (ptrs.size > 2) return;
+  const p = toImg(e), touch = e.pointerType === 'touch';
+  if (e.button === 1 || spaceDown || tool === 'hand') {
+    gesture = { type: 'pan', lx: e.clientX, ly: e.clientY }; stage.style.cursor = 'grabbing'; e.preventDefault(); return;
+  }
+  if (e.button === 2) {
+    if (tool === 'pin') { const hp = hitPin(p.sx, p.sy, touch); if (hp >= 0) deletePin(hp); }
+    return;
+  }
+  if (tool === 'auto') {
+    if (p.x >= 0 && p.y >= 0 && p.x < W && p.y < H) {
+      const xi = Math.floor(p.x), yi = Math.floor(p.y), j = (yi * W + xi) * 4;
+      if (orig[j + 3] < 8) { say('Bagian itu sudah transparan.'); return; }
+      setColor([orig[j], orig[j + 1], orig[j + 2]]);
+      params.seed = [xi, yi];
+      schedulePreview(0);
+    }
+    return;
+  }
+  if (tool === 'pin') {
+    const hp = hitPin(p.sx, p.sy, touch);
+    if (hp >= 0) {
+      poly.sel = hp; poly.drag = hp;
+      gesture = { type: 'pin', idx: hp, moved: false, sx: p.sx, sy: p.sy, closeOnTap: hp === 0 && poly.pins.length >= 3 && !poly.closed };
+      syncPinPanel(); requestDraw(); return;
+    }
+    const he = hitEdge(p.sx, p.sy, touch);
+    if (he) {
+      poly.pins.splice(he.idx + 1, 0, { x: he.x, y: he.y });
+      poly.sel = he.idx + 1; poly.drag = poly.sel;
+      gesture = { type: 'pin', idx: poly.sel, moved: true, sx: p.sx, sy: p.sy };
+      syncPinPanel(); requestDraw(); return;
+    }
+    if (poly.closed) { poly.sel = -1; syncPinPanel(); requestDraw(); return; }
+    poly.pins.push({ x: clamp(p.x, 0, W), y: clamp(p.y, 0, H) });
+    poly.sel = poly.pins.length - 1; poly.drag = poly.sel;
+    gesture = { type: 'pin', idx: poly.sel, moved: true, sx: p.sx, sy: p.sy };
+    syncPinPanel(); requestDraw(); return;
+  }
+  if (tool === 'brush') {
+    if (preview) applyAuto();
+    pushHistory();
+    gesture = { type: 'brush', last: { x: p.x, y: p.y } };
+    strokeTo(gesture.last, gesture.last);
+  }
+});
+stage.addEventListener('pointermove', e => {
+  if (!orig) return;
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const p = toImg(e), touch = e.pointerType === 'touch';
+  cursor = p;
+  $('#coord').textContent = 'x ' + (p.x >= 0 && p.x < W ? Math.floor(p.x) : '–') + ' · y ' + (p.y >= 0 && p.y < H ? Math.floor(p.y) : '–');
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = Array.from(ptrs.values()), r = stage.getBoundingClientRect();
+    const d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2 - r.left, cy = (a.y + b.y) / 2 - r.top;
+    const ns = clamp(pinch.s * d / pinch.d, minScale, 40), f = ns / pinch.s;
+    view.s = ns; view.ox = cx - (pinch.cx - pinch.ox) * f; view.oy = cy - (pinch.cy - pinch.oy) * f;
+    fitted = false; updateZoom(); requestDraw(); return;
+  }
+  if (gesture) {
+    if (gesture.type === 'pan') {
+      view.ox += e.clientX - gesture.lx; view.oy += e.clientY - gesture.ly; gesture.lx = e.clientX; gesture.ly = e.clientY;
+      fitted = false; requestDraw();
+    } else if (gesture.type === 'pin') {
+      if (!gesture.moved && Math.hypot(p.sx - gesture.sx, p.sy - gesture.sy) > 3) gesture.moved = true;
+      if (gesture.moved) { movePin(gesture.idx, p.x, p.y); syncPinPanel(); requestDraw(); }
+    } else if (gesture.type === 'brush') {
+      const np = { x: p.x, y: p.y }; strokeTo(gesture.last, np); gesture.last = np;
+    }
+    return;
+  }
+  if (tool === 'pin') {
+    const hp = hitPin(p.sx, p.sy, touch);
+    hover.pin = hp; hover.edge = hp < 0 ? hitEdge(p.sx, p.sy, touch) : null;
+    stage.style.cursor = hp >= 0 ? 'move' : 'crosshair';
+  }
+  requestDraw();
+});
+function endPointer(e) {
+  ptrs.delete(e.pointerId);
+  if (pinch) { if (ptrs.size < 2) pinch = null; return; }
+  if (!gesture) return;
+  if (gesture.type === 'pin') {
+    if (!gesture.moved && gesture.closeOnTap) { poly.closed = true; }
+    poly.drag = -1; syncPinPanel();
+  } else if (gesture.type === 'pan') {
+    stage.style.cursor = tool === 'hand' ? 'grab' : (tool === 'brush' ? 'none' : 'crosshair');
+  }
+  gesture = null; requestDraw();
+}
+stage.addEventListener('pointerup', endPointer);
+stage.addEventListener('pointercancel', endPointer);
+stage.addEventListener('pointerleave', () => { cursor = null; hover = { pin: -1, edge: null }; requestDraw(); });
+stage.addEventListener('contextmenu', e => e.preventDefault());
+stage.addEventListener('dblclick', e => {
+  if (tool !== 'pin') return;
+  const p = toImg(e), hp = hitPin(p.sx, p.sy, false);
+  if (hp >= 0) deletePin(hp);
+});
+stage.addEventListener('wheel', e => {
+  if (!orig) return; e.preventDefault();
+  const r = stage.getBoundingClientRect();
+  zoomAt(e.clientX - r.left, e.clientY - r.top, Math.pow(1.0018, -e.deltaY * (e.deltaMode === 1 ? 16 : 1)));
+}, { passive: false });
+
+/* drag & drop */
+['dragenter', 'dragover'].forEach(t => wrap.addEventListener(t, e => { e.preventDefault(); wrap.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => wrap.addEventListener(t, e => { e.preventDefault(); wrap.classList.remove('over'); }));
+wrap.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadSource(f, f.name);
+});
+$('#file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (f) loadSource(f, f.name); e.target.value = '';
+});
+$('#btnSample').addEventListener('click', () => loadSource(makeSample(), 'contoh'));
+
+/* ---------- tools / panels ---------- */
+const HINTS = {
+  auto: 'Klik bagian latar untuk memilih warna yang dihapus.',
+  pin: 'Klik untuk menaruh pin. Seret pin untuk menggeser, klik garis untuk menambah pin.',
+  brush: 'Seret untuk menghapus atau mengembalikan. Perbesar untuk lebih teliti.',
+  hand: 'Seret untuk menggeser. Gulir atau cubit untuk zoom.'
+};
+function setTool(t) {
+  if (tool === 'auto' && t !== 'auto' && preview) applyAuto();
+  tool = t; gesture = null; poly.drag = -1;
+  $$('.tool').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tool === t)));
+  $$('[data-panel]').forEach(s => { s.hidden = s.dataset.panel !== t; });
+  $('#hint').textContent = HINTS[t];
+  stage.style.cursor = t === 'hand' ? 'grab' : (t === 'brush' ? 'none' : 'crosshair');
+  syncPanels(); requestDraw();
+}
+function syncPanels() { syncAutoState(); syncPinPanel(); }
+$$('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+
+/* auto controls */
+const sliderBind = (id, outId, fmt, cb) => {
+  const el = $(id), out = $(outId);
+  el.addEventListener('input', () => { out.textContent = fmt(+el.value); cb(+el.value); });
+};
+sliderBind('#tol', '#tolV', v => v, v => { params.tol = v; schedulePreview(140); });
+sliderBind('#soft', '#softV', v => v, v => { params.soft = v; schedulePreview(140); });
+sliderBind('#minA', '#minV', v => v + ' px', v => { params.minArea = v; schedulePreview(140); });
+$$('input[name="scope"]').forEach(r => r.addEventListener('change', () => {
+  params.scope = r.value; if (!r.checked) return;
+  $('#minWrap').hidden = params.scope === 'conn';
+  if (params.scope === 'conn' && !params.seed) { say('Klik pada latar untuk menentukan titik awal.'); return; }
+  schedulePreview(0);
+}));
+$('#bgc').addEventListener('input', e => {
+  const v = e.target.value; setColor([parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16)]);
+  schedulePreview(140);
+});
+$('#autoApply').addEventListener('click', applyAuto);
+$('#autoCancel').addEventListener('click', cancelAuto);
+
+/* pin controls */
+sliderBind('#feather', '#featherV', v => v + ' px', () => {});
+$$('input[name="pmode"]').forEach(r => r.addEventListener('change', requestDraw));
+$('#pClose').addEventListener('click', () => { if (poly.pins.length >= 3) { poly.closed = true; syncPinPanel(); requestDraw(); } });
+$('#pDel').addEventListener('click', () => deletePin(poly.sel));
+$('#pApply').addEventListener('click', applyPoly);
+$('#pClear').addEventListener('click', clearPoly);
+const pinInput = (id, key) => $(id).addEventListener('input', e => {
+  const v = parseFloat(e.target.value); if (poly.sel < 0 || isNaN(v)) return;
+  poly.pins[poly.sel][key] = clamp(v, key === 'x' ? 0 : 0, key === 'x' ? W : H); requestDraw();
+});
+pinInput('#pinX', 'x'); pinInput('#pinY', 'y');
+$$('[data-nudge]').forEach(b => b.addEventListener('click', () => {
+  if (poly.sel < 0) return;
+  const [dx, dy] = b.dataset.nudge.split(',').map(Number), p = poly.pins[poly.sel];
+  movePin(poly.sel, p.x + dx, p.y + dy); syncPinPanel(); requestDraw();
+}));
+
+/* brush controls */
+sliderBind('#bsize', '#bsizeV', v => v + ' px', v => { brush.size = v; requestDraw(); });
+sliderBind('#bhard', '#bhardV', v => v + '%', v => { brush.hard = v / 100; });
+$$('input[name="bmode"]').forEach(r => r.addEventListener('change', () => { if (r.checked) brush.mode = r.value; }));
+
+/* top bar */
+$('#undo').addEventListener('click', undo);
+$('#redo').addEventListener('click', redo);
+$('#reset').addEventListener('click', resetAll);
+
+/* status bar */
+const center = () => [cw / 2, ch / 2];
+$('#zIn').addEventListener('click', () => { const c = center(); zoomAt(c[0], c[1], 1.25); });
+$('#zOut').addEventListener('click', () => { const c = center(); zoomAt(c[0], c[1], 0.8); });
+$('#zFit').addEventListener('click', () => { fitted = true; fit(); requestDraw(); });
+$('#z100').addEventListener('click', () => { const c = center(); zoomTo(c[0], c[1], 1); });
+$('#fitBtn2').addEventListener('click', () => { fitted = true; fit(); requestDraw(); });
+$('#oneBtn2').addEventListener('click', () => { const c = center(); zoomTo(c[0], c[1], 1); });
+$('#showOrig').addEventListener('click', e => {
+  showOrig = !showOrig; e.currentTarget.setAttribute('aria-pressed', String(showOrig)); requestDraw();
+});
+$$('.sw').forEach(b => b.addEventListener('click', () => {
+  previewBg = b.dataset.bg;
+  $$('.sw').forEach(x => x.setAttribute('aria-pressed', String(x === b))); requestDraw();
+}));
+
+/* keyboard */
+window.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName) && document.activeElement.type !== 'range' && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'radio';
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+  if (mod || typing) return;
+  if (e.code === 'Space') { spaceDown = true; stage.style.cursor = 'grab'; e.preventDefault(); return; }
+  const k = e.key.toLowerCase();
+  if (k === 'a') setTool('auto'); else if (k === 'p') setTool('pin'); else if (k === 'b') setTool('brush'); else if (k === 'h') setTool('hand');
+  else if (k === '[') { $('#bsize').value = Math.max(2, brush.size - 4); $('#bsize').dispatchEvent(new Event('input')); }
+  else if (k === ']') { $('#bsize').value = Math.min(300, brush.size + 4); $('#bsize').dispatchEvent(new Event('input')); }
+  if (tool === 'pin') {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && poly.sel >= 0) { e.preventDefault(); deletePin(poly.sel); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (poly.closed) applyPoly(); else if (poly.pins.length >= 3) { poly.closed = true; syncPinPanel(); requestDraw(); } }
+    else if (e.key === 'Escape') clearPoly();
+    else if (poly.sel >= 0 && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const st = e.shiftKey ? 10 : (e.altKey ? 0.25 : 1), p = poly.pins[poly.sel];
+      movePin(poly.sel, p.x + (e.key === 'ArrowRight' ? st : e.key === 'ArrowLeft' ? -st : 0), p.y + (e.key === 'ArrowDown' ? st : e.key === 'ArrowUp' ? -st : 0));
+      syncPinPanel(); requestDraw();
+    }
+  }
+  if (tool === 'auto' && e.key === 'Enter' && preview) applyAuto();
+});
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space') { spaceDown = false; stage.style.cursor = tool === 'hand' ? 'grab' : (tool === 'brush' ? 'none' : 'crosshair'); }
+});
+
+/* ---------- export ---------- */
+function exportCanvas() {
+  const data = new ImageData(W, H);
+  paintComp(0, 0, W, H, false, data.data);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  c.getContext('2d').putImageData(data, 0, 0);
+  if (!$('#trim').checked) return c;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1; const a = data.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (a[(y * W + x) * 4 + 3] > 0) {
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < x0) return c;
+  const t = document.createElement('canvas'); t.width = x1 - x0 + 1; t.height = y1 - y0 + 1;
+  t.getContext('2d').drawImage(c, x0, y0, t.width, t.height, 0, 0, t.width, t.height);
+  return t;
+}
+function showFallback(blob) {
+  const img = $('#modalImg'); if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+  const u = URL.createObjectURL(blob); img.dataset.url = u; img.src = u; $('#modal').hidden = false;
+}
+$('#modalClose').addEventListener('click', () => { $('#modal').hidden = true; });
+$('#dl').addEventListener('click', async () => {
+  if (!orig) return;
+  if (preview) applyAuto();
+  const c = exportCanvas();
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  if (!blob) { say('Gagal membuat PNG.'); return; }
+  if (!downloads) {
+    try {
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = fileName + '-potongan.png'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 15000);
+      say('PNG transparan diunduh.');
+    } catch (e) { showFallback(blob); }
+    return;
+  }
+  try {
+    await downloads.save({ filename: fileName + '-potongan.png', data: blob });
+    say('PNG transparan tersimpan.');
+  } catch (err) {
+    const code = err && err.code;
+    if (code === 'declined') say('Unduhan dibatalkan.');
+    else if (code === 'rate_limited') say('Tunggu sebentar, lalu coba lagi.');
+    else showFallback(blob);
+  }
+});
+
+/* ---------- boot ---------- */
+readTheme();
+setTool('auto');
+if (window.claude && window.claude.use) {
+  window.claude.use('downloads').then(d => { downloads = d; }).catch(() => { downloads = null; });
+}
+loadSource(makeSample(), 'contoh');
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>
